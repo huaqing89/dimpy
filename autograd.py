@@ -285,7 +285,7 @@ class Operate(Autograd):
   
   def factor(self,opStr,aFactor):
     if (aFactor is None): aFactor=[]
-    print(self.operate)
+    print("factor:",self.operate)
     if (self.operate!=opStr): return aFactor
     aFactor.append(self.left)
     aFactor.append(self.right)
@@ -1803,8 +1803,6 @@ class MaxUnpool1dOperate(Operate):
  
   def eval(self):
     if (self.catch and self._data is not None): return self._data
-    print(self.left)
-    print(self.right)
     rst=dim.nn.functional.maxUnpool1d(
         self.left.eval(),self.args["indices"],self.right.eval())
     self._data = rst

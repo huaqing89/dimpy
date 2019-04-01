@@ -174,7 +174,6 @@ class Functional(object):
                   a[i][j][l].append(value)
                 else:
                   a[i][j][l][m]+=value
-    print(a)              
     rst = self.dim.vector(a)
     #P1=(((In-1)*S+F) -(((In-F+2*P0)/S)+1))/2let In=input.shape[2]
     In=inputs.shape[2]
@@ -208,9 +207,9 @@ class Functional(object):
           fdeep=kernel.shape[0]
           fh=kernel.shape[1]
           fw=kernel.shape[2]
-          d=(ideep-fdeep)/stride+1
-          h=(ih-fh)/stride+1
-          w=(iw-fw)/stride+1
+          d=math.floor((ideep-fdeep)/stride+1)
+          h=math.floor((ih-fh)/stride+1)
+          w=math.floor((iw-fw)/stride+1)
           for l in range(d):
             if len(a[i][j])<=l: a[i][j].push([])
             for m in range(h):
@@ -264,9 +263,9 @@ class Functional(object):
     a=[]
     for i in range(inputs.shape[0]):
       a.append([])
-      for j in range(filters.shape[1]):
+      for j in range(filters.shape[0]):
          a[i].append([])
-         for k in range(filters.shape[2]):
+         for k in range(filters.shape[1]):
             bat = inputs[i,k].pad(padding)
             kernel = filters[j,k].rot180()
             ih=bat.shape[0]
@@ -297,9 +296,9 @@ class Functional(object):
     a=[]
     for i in range(inputs.shape[0]):
       a.append([])
-      for j in range(filters.shape[1]):
+      for j in range(filters.shape[0]):
          a[i].append([])
-         for k in range(filters.shape[2]):
+         for k in range(filters.shape[1]):
             bat = inputs[i,k].pad(padding)
             kernel = filters[j,k].rot180()
             ideep=bat.shape[0]
@@ -324,13 +323,13 @@ class Functional(object):
     return self.dim.vector(a)
   
   #Pool Function
-  def maxPool1d(self,inputs,ks,indices=[],padding=0):
+  def maxPool1d(self,inputs,ks,padding=0,includeIndices=False):
     if (len(inputs.shape)!=3):
        raise Exception("input({})不符合[miniBatch*inChannels*W]的形状要求".format(inputs.shape)) 
     
     ks=int(ks)
     a=[]
-    
+    indices=[]
     for i,channel in enumerate(inputs):
       a.append([])
       indices.append([])
@@ -345,11 +344,11 @@ class Functional(object):
           flip=kernel[k*ks:k*ks+fw]
           a[i][j].append(flip.max())
           indices[i][j].append(flip.argmax())
-    print("maxPool1d a:",a)
-    print("maxPool1d indices:",indices)
     rst = self.dim.vector(a)
     rst = inputs.setGradFn(rst,"maxPool1d",left=inputs,right=ks,args={"indices":indices})
+    if (includeIndices): return rst,indices
     return rst
+    
   def avgPool1d(self,inputs,ks,padding=0):
     if (len(inputs.shape)!=3):
        raise Exception("input({})不符合[miniBatch*inChannels*W]的形状要求".format(inputs.shape)) 
@@ -371,12 +370,13 @@ class Functional(object):
     rst = self.dim.vector(a)
     rst = inputs.setGradFn(rst,"avgPool1d",left=inputs,right=ks)
     return rst
-  def maxPool2d(self,inputs,ks,indices=[],padding=0):
+  def maxPool2d(self,inputs,ks,padding=0,includeIndices=False):
     if (len(inputs.shape)!=4):
        raise Exception("input({})不符合[miniBatch*inChannels*H*W]的形状要求".format(inputs.shape)) 
     
     ks=int(ks)
     a=[]
+    indices=[]
     for i,channel in enumerate(inputs):
       a.append([])
       indices.append([])
@@ -400,6 +400,7 @@ class Functional(object):
     
     rst =  self.dim.vector(a)
     rst =  inputs.setGradFn(rst,"maxPool2d",left=inputs,right=ks,args={"indices":indices})
+    if (includeIndices): return rst,indices
     return rst
   
   def avgPool2d(self,inputs,ks,padding=0):
