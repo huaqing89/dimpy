@@ -21,14 +21,14 @@ class Net(dim.nn.Module):
       dim.nn.Linear(10,5),
       dim.nn.ReLU()
     )
-    self.layer1.addModule("layer2",this.layer2)
+    self.layer1.addModule("layer2",self.layer2)
     #crossEntropyLoss
-    this.layer1.addModule("out",dim.nn.Linear(1,10))
+    self.layer1.addModule("out",dim.nn.Linear(1,10))
     #mseLoss
-    this.layer1.addModule("out",dim.nn.Linear(5,1))
+    self.layer1.addModule("out",dim.nn.Linear(5,1))
     #this.layer1.addModule("relu2",dim.nn.ReLU())
         
-    self.addModule("all",this.layer1)
+    self.addModule("all",self.layer1)
 
   def forward(self,x):
     return self.moduleList[0].module.forward(x)

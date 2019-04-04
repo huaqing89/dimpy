@@ -1,30 +1,6 @@
-
-'''
-  kron(a,indices=false,dir="v"){
-    return this.data.map((x,i)=>{
-      if (x instanceof Vector) return x.kron(a,indices,"h")
-      if (indices){ 
-        return a.data[i].mul(x)
-      }else{
-        return a.mul(x)
-      }
-    }).reduce((m,n)=>{
-      if (dir=="h") {
-        if (m.ndim==1) return new Vector(m.data.concat(n.data))
-        return m.hstack(n)
-      }
-      if (dir=="v") {
-        if (m.ndim==1) return new Vector(m.data.concat(n.data))
-        return m.vstack(n)
-      }
-    })
-  }
-}
-'''
 #coding:utf-8
 import numpy as np
-from nn import NN,Optimizer
-import autograd 
+import dim
 
 class Vector(np.ndarray):
   def __init__(self,shape,buffer,dtype):
@@ -79,14 +55,14 @@ class Vector(np.ndarray):
       rst.requiresGrad=True
       if left is None : leftFn=None
       elif getattr(left,"gradFn",None): leftFn=left.gradFn
-      else: leftFn=autograd.Constant(left)
+      else: leftFn=dim.autograd.Constant(left)
       
       if right is None : rightFn=None
       elif getattr(right,"gradFn",None): rightFn=right.gradFn
-      else: rightFn=autograd.Constant(right)
+      else: rightFn=dim.autograd.Constant(right)
       #print("left",left,leftFn)
       #print("right",right,rightFn)
-      rst.gradFn=autograd.Operate.wrapper(leftFn,rightFn,opStr,args,name)
+      rst.gradFn=dim.autograd.Operate.wrapper(leftFn,rightFn,opStr,args,name)
     return rst   
 
   def __add__(self,other): 
@@ -233,7 +209,7 @@ class Vector(np.ndarray):
     return rst
 
 
-  def add(self,a): print("add");return self+a
+  def add(self,a): return self+a
   def sub(self,a): return self-a
   def mul(self,a): return self*a
   def div(self,a): return self/a
@@ -357,11 +333,11 @@ class Vector(np.ndarray):
     self.grad=None
     self.gradFn=None
     if (bool and self.isLeaf):
-      self.gradFn=autograd.Variable(self)
+      self.gradFn=dim.autograd.Variable(self)
   
   @property
   def isLeaf(self):
-    return (not isinstance(self.gradFn,autograd.Operate))
+    return (not isinstance(self.gradFn,dim.autograd.Operate))
 
   def expression(self): return self.gradFn and self.gradFn.expression()
   def gradExpression(self):
@@ -369,7 +345,7 @@ class Vector(np.ndarray):
     return self.gradFn.gradExpression()
   def backward(self,prevOp=None):
     if (not self.requiresGrad): raise Exception("after call setGrad(true) ,then use this function")
-    if (prevOp): prevOp = autograd.Constant(prevOp)
+    if (prevOp): prevOp = dim.autograd.Constant(prevOp)
     variables=self.gradFn.variables()
     for v in variables:
       op=self.gradFn.backward(prevOp,v)
@@ -379,183 +355,3 @@ class Vector(np.ndarray):
     self.gradFn.clearData()
     self.grad=None
 
-class Dim(object):
-  def __init__(self):
-    self.dtype='float32'
-    self.Vector=Vector
-    self.random = np.random
-    self.nn = NN(self)
-    self.optim = Optimizer()
-  def vector(self,*a,dtype='float32'):
-    rst=[]
-    #if isinstance(a[0],tuple): a=a[0]
-    #if isinstance(a[0],list): a=a[0]
-    for x in a:
-      if isinstance(x,Vector): 
-        rst.append(x)
-      elif isinstance(x,int) or isinstance(x,float): 
-        x=np.array([x],dtype)
-        rst.append(Vector(shape=x.shape,buffer=x,dtype=x.dtype.name))
-      elif isinstance(x,list):
-        x=np.array(x,dtype)
-        rst.append(Vector(shape=x.shape,buffer=x,dtype=x.dtype.name))
-      else:
-        rst.append(Vector(shape=x.shape,buffer=x,dtype=x.dtype.name))
-    if len(rst)==1: rst=rst[0]
-    return rst
-    
-  def empty(self,shape):
-    return self.vector(np.empty(shape))  
-  def fill(self,n,shape):
-    a=self.empty(shape)
-    a.fill(n)
-    return a  
-  def array(self,a,dtype='float32'):
-    return self.vector(a,dtype=dtype)  
-  def flatten(self,a):
-    return self.vector(np.flatten(a))
-  def copy(self,a):
-    return self.vector(np.copy(a)) 
-  def save(self,a,file): return np.save(file)
-  def load(self,file): return np.load(file)
-  def arange(self,start,end=None,step=1,dtype="float32"):
-    if (end==None):
-      end=start
-      start=0
-    return self.vector(np.arange(start,end,step,dtype))
-  def mat(self,str_mat,dtype="float32"):
-    return self.vector(self.vector(np.mat(str_mat,dtype)))
-  def zeros(self,shape,dtype='float32'):
-    return self.vector(np.zeros(shape,dtype))
-  def ones(self,shape,dtype='float32'):
-    return self.vector(np.ones(shape,dtype))
-  def eye(self,number,dtype='float32'):
-    return self.vector(np.eye(number,dtype=dtype))
-  def diag(self,a,dtype='float32'):
-    return self.vector(np.diag(a,dtype=dtype))
-        
-  def reshape(self,a,*d):
-    if (type(d[0])==tuple): d=d[0]
-    return self.vector(np.reshape(a,d))
-  def swapaxes(self,a,m,n): return self.vector(np.swapaxes(a,m,n))
-  def squeeze(self,a):pass
-  
-  def poly1d(self,a): return np.poly1d(a)
-  def polyadd(self,p1,p2): return p1.add(p2)
-  def polysub(self,p1,p2): return p1.sub(p2)
-  def polymul(self,p1,p2): return p1.mul(p2)
-  def polydiv(self,p1,p2): return p1.div(p2)
-  def polyval(self,p,a)  : return p.val(a)
-  
-  def rand(self,shape): return self.vector(np.random.random(shape))
-  def randint(self,start,end,shape):return self.vector(np.random.randint(start,end,shape))
-  def randn(self,*shape): return self.vector(np.random.randn(*shape))
-  
-  def radians(self,a): a=self.vector(a);return a.radians() 
-  def sin(self,a): a=self.vector(a);return a.sin()
-  def cos(self,a): a=self.vector(a);return a.cos()
-  def tan(self,a): a=self.vector(a);return a.tan()
-  def asin(self,a): a=self.vector(a);return a.asin()
-  def acos(self,a): a=self.vector(a);return a.acos()
-  def atan(self,a): a=self.vector(a);return a.atan()
-  def asinh(self,a): a=self.vector(a);return a.asinh()
-  def acosh(self,a): a=self.vector(a);return a.acosh()
-  def atanh(self,a): a=self.vector(a);return a.atanh()
-  def sinh(self,a): a=self.vector(a);return a.sinh()
-  def cosh(self,a): a=self.vector(a);return a.cosh()
-  def tanh(self,a): a=self.vector(a);return a.tanh()
-
-  def log(self,a): a=self.vector(a);return a.log()
-  def log2(self,a): a=self.vector(a);return a.log2()
-  def log10(self,a): a=self.vector(a);return a.log10()
-  def exp(self,a): a=self.vector(a);return a.exp()
-  def sqrt(self,a): a=self.vector(a);return a.sqrt()
-  def square(self,a): a=self.vector(a);return a.square()
-  def pow(self,a,n): a=self.vector(a);return a.pow(n)
-  def floor(self,a): a=self.vector(a);return a.floor()
-  def ceil(self,a): a=self.vector(a);return a.ceil()
-  def around(self,a,n): a=self.vector(a);return a.around(n)
-  def abs(self,a): a=self.vector(a);return a.abs()
-  def neg(self,a): a=self.vector(a);return a.neg()
-  def reciprocal(self,a): a=self.vector(a);return a.reciprocal()
-
-  def add(self,a,b): a,b=self.vector(a,b);return a.add(b)
-  def sub(self,a,b): a,b=self.vector(a,b);return a.sub(b)
-  def mul(self,a,b): a,b=self.vector(a,b);return a.mul(b)
-  def div(self,a,b): a,b=self.vector(a,b);return a.div(b)
-
-  def mod(self,a,b): a,b=self.vector(a,b);return a.mod(b)
-  def subtract(self,a,b): return self.sub(a,b)
-  def multiply(self,a,b): return self.mul(a,b)
-  def divide(self,a,b):   return self.div(a,b)
-  def negative(slef,a): return self.neg(a)
-  def power(self,a,n):  return self.pow(a,n)
-  
-  def sign(self,a): a=self.vector(a);return a.sign()
-  def gt(self,a,b): a,b=self.vector(a,b);return a.gt(b)
-  def lt(self,a,b): a,b=self.vector(a,b);return a.lt(b)
-  def gt(self,a,b): a,b=self.vector(a,b);return a.ge(b)
-  def lt(self,a,b): a,b=self.vector(a,b);return a.le(b)
-  def eq(self,a,b): a,b=self.vector(a,b);return a.eq(b)
-  def ne(self,a,b): a,b=self.vector(a,b);return a.ne(b)
-  def allclose(self,a,b): a,b=self.vector(a,b);return a.allclose(b)
-  def all(self,a,axis=None): a=self.vector(a);return a.all(axis)
-  def any(self,a,axis=None): a=self.vector(a);return a.any(axis)
-
-  def sum(self,a,axis=None): a=self.vector(a);return a.sum(axis)
-  def mean(self,a,axis=None): a=self.vector(a);return a.mean(axis)
-  def max(self,a,axis=None):  a=self.vector(a);return a.max(axis)
-  def min(self,a,axis=None):  a=self.vector(a);return a.min(axis)
-  def argmax(self,a,axis=None): a=self.vector(a);return a.argmax(axis)
-  def argmin(self,a,axis=None): a=self.vector(a);return a.argmin(axis)
-  def var(self,a,axis=None): a=self.vector(a);return a.var(axis)
-  def std(self,a,axis=None): a=self.vector(a);return a.std(axis)
-  def cov(self,a,axis=None): a=self.vector(a);return a.cov(axis)
-  def ptp(self,a,axis=None): a=self.vector(a);return a.ptp(axis)
-  def median(self,a,axis=None): a=self.vector(a);return a.median(axis)
-  
-  def sort(self,a,axis=None): a=self.vector(a);return a.sort(axis)
-  
-  #normal(a,N){a=this.ensureVector(a);return a.normal(N)}
-  #minmaxNormal(a){a=this.ensureVector(a);return a.minmaxNormal()}
-  
-
-  def dot(self,a,b): a,b=self.vector(a,b);return a.dot(b)
-  def matmul(self,a,b): return self.dot(a,b)
-  def trace(self,a): a=self.vector(a);return a.trace()
-
-  def pad(self,a,pad_width,mode="constant"):a=self.vector(a);return a.pad(pad_width,mode)
-
-  def onehot(a,n): a=self.vector(a);return a.onehot(n)
-  def kron(self,a,b): a,b=self.vector(a,b);return a.kron(b)
-  def clip(self,a,m,n): a=self.vector(a);return a.clip(m,n)
-  def hstack(self,a): return self.vector(np.hstack(a))
-  def vstack(self,a): return self.vector(np.vstack(a))
-  def stack(self,a,axis=1): return self.vector(np.stack(a,axis))
-  
-  def concat(self,a,axis=1): return self.vector(np.concatenate(a,axis))
-  
-  def hsplit(self,a,m): a=self.vector(a);return a.split(m,1)
-  def vsplit(self,a,m): a=self.vector(a);return a.split(m,0)
-  def split(self,a,m,axis=1): a=self.vector(a);return a.split(m,axis)
-
-  def take(self,a,axis,p): a=self.vector(a);return a.take(axis,p)
-  
-  '''
-  where(){}
-  nonzero(){}
-  
-  fftConv(a,b){
-    if (!Array.isArray(a) || !Array.isArray(b)) throw new Error(`a、b参数必须都是数组`)
-    let n = a.length + b.length -1 
-    let N = 2**(parseInt(Math.log2(n))+1)
-    let numa=N-a.length
-    let numb=N-b.length
-    for(let i=0;i<numa;i++) a.unshift(0)
-    for(let i=0;i<numb;i++) b.unshift(0)
-    let A=this.array(this.fft.fft(a))
-    let B=this.array(this.fft.fft(b))
-    let C=A.mul(B)
-    return this.fft.ifft(C.data)
-  }
-  '''
