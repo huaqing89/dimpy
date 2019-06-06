@@ -10,8 +10,11 @@ class SubOperate(Operate):
     if (partial.type!="Variable"): raise Exception("partial参数必须是Variable类型")
     if (self.catch and self._grads.get(partial.name,None)): return self._grads[partial.name]
     if (prevOp is None): prevOp=Constant(dim.ones(self.eval().shape))
-    part1= dim.autograd.SubOperate.wrapper(self.left.partGrad(partial,prevOp),self.right.partGrad(partial,prevOp))
-    rst=part1
+  
+    part1=self.left.partGrad(partial,prevOp)
+    part2=self.right.partGrad(partial,prevOp)
+  
+    rst= dim.autograd.SubOperate.wrapper(part1,part2)
     self._grads[partial.name]=rst
     return rst
 
@@ -30,16 +33,17 @@ class SubOperate(Operate):
     self._expressionStr = rst
     return rst
 
-  def eval(self):
-    if (self.catch and self._data is not None): return self._data
-    rst = dim.sub(self.left.eval(),self.right.eval())
+  def eval(self,useCatch=True):
+    if (useCatch and self.catch and self._data is not None): return self._data
+    rst = self.left.eval(useCatch)-self.right.eval(useCatch)
     self._data = rst
     return rst
   
   @staticmethod
   def wrapper(left,right,args=None,name=None):
-    if (right.type=="Constant" and (right.data==0).all()): return left
-    if (left.type=="Constant" and right.type=="Constant"): return  Constant(dim.sub(left.data,right.data))
-    if (left.isSame(right)): return Constant(1)
+    if (right.type=="Constant" and right.number==0): return left
+    #if (right.type=="Constant" and (right.data==0).all()): return left
+    #if (left.type=="Constant" and right.type=="Constant"): return  Constant(left.data-right.data)
+    #if (left.isSame(right)): return Constant(1)
     
     return SubOperate(left,right,args,name)

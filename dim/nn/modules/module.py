@@ -1,7 +1,7 @@
 import dim
 
 class Module(object):
-  def __init__(self):
+  def __init__(self,):
     self.moduleList=[]
     self.eps=1e-5
   def addModule(self,name,module):
@@ -46,7 +46,10 @@ class Module(object):
     pass
 
   def forward(self):
-    print("must implement this function")
+    print("have not implemented")
   
   def __call__(self,*args):
     return self.forward(*args)
+  
+  def cl(self):
+    print("have not implemented")

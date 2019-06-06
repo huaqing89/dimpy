@@ -6,7 +6,7 @@ from ..vector import Vector
 def softmax(x,axis=1):
   x=dim.vector(x)
   y=x.exp()
-  total=y.sum(axis)
+  total=y.sum(axis,keepdims=True)
   rst=y/total
   if (axis==1):
     rst = x.setGradFn(rst,"softmax")    
@@ -77,9 +77,10 @@ def dropout(a,keep):
 #Loss Function
 def mseLoss(a,y):
   #also named L2
-  a,y=dim.vector(a,y)
-  return y.sub(a).square().mean()
-
+  #a,y=dim.vector(a,y)
+  #return y.sub(a).square().mean()
+  d=y-a
+  return (d*d).mean()
 def binaryCrossEntropy(a,y):
   a,y=dim.vector(a,y)
   return (y*a.log() + (1-y)*(1-a).log()).sum()

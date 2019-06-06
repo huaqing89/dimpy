@@ -1,15 +1,13 @@
 import json
 import math
-import random
-import hashlib
 
 import dim
 from .autograd import Autograd
 from .constant import Constant
 
-OPERATE=[]
 
 class Operate(Autograd):
+  sequence=0
   def __init__(self,left,right,operate,args=None,name=None):
     super(Operate,self).__init__()
     if self.isNumber(left): self.left = Constant(left)
@@ -17,7 +15,8 @@ class Operate(Autograd):
     if self.isNumber(right): self.right = Constant(right)
     else: self.right = right
     self.args = args
-    if (not name): name = "op"+str(random.random())[-6:]
+    Operate.sequence += 1
+    if (not name): name = "op"+str(Operate.sequence)
     self.name = name 
     
     self.operate = operate
@@ -27,7 +26,8 @@ class Operate(Autograd):
   def expression(self):pass
   def eval(self):pass
 
-  def variables(self,v=[]):
+  def variables(self,v=None):
+    if v is None: v=[]
     if (self.left and self.left.type=="Operate"): v=self.left.variables(v)
     if (self.right and self.right.type=="Operate"): v=self.right.variables(v)
     if (self.left and self.left.type=="Variable"):

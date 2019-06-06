@@ -1,9 +1,8 @@
 import sys
 sys.path.append('..')
 
-import autograd
 import dim
-dim=dim.Dim()
+
 a1=dim.arange(2*6).reshape(1,2,6)
 a1.setGrad()
 print("a1",a1)

@@ -25,9 +25,9 @@ class MSELossOperate(Operate):
     self._expressionStr = rst
     return rst
    
-  def eval(self):
-    if (self.catch and self._data is not None): return self._data
-    rst = dim.nn.functional.mseLosss(self.left.eval())
+  def eval(self,useCatch=True):
+    if (useCatch and self.catch and self._data is not None): return self._data
+    rst = dim.nn.functional.mseLosss(self.left.eval(useCatch))
     self._data = rst
     return rst
   

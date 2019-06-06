@@ -1,9 +1,7 @@
 import sys
 sys.path.append('..')
 
-import autograd
 import dim
-dim=dim.Dim()
 
 #x=dim.arange(12).reshape(3,4)
 #y=dim.arange(3).reshape(3,1)
@@ -23,43 +21,43 @@ class Net(dim.nn.Module):
     )
     self.layer1.addModule("layer2",self.layer2)
     #crossEntropyLoss
-    self.layer1.addModule("out",dim.nn.Linear(1,10))
+    self.layer1.addModule("out",dim.nn.Linear(5,10))
     #mseLoss
-    self.layer1.addModule("out",dim.nn.Linear(5,1))
+    self.layer1.addModule("out",dim.nn.Linear(10,1))
     #this.layer1.addModule("relu2",dim.nn.ReLU())
         
     self.addModule("all",self.layer1)
 
   def forward(self,x):
-    return self.moduleList[0].module.forward(x)
+    return self.moduleList[0]["module"].forward(x)
 
 
-net = dim.nn.Module1(Net)
+net = Net()
+print(net)
+optim = dim.optim.Adam(net.parameters(),{"lr":0.00001})
+
 preds=net.forward(x)
-#let criterion=dim.nn.CrossEntropyLoss()  
+#criterion=dim.nn.CrossEntropyLoss()  
 criterion=dim.nn.MSELoss()  
-optim = dim.optim.Adam(net.parameters(),{"lr":1})
+loss = criterion(preds,y)
 
 for i in range(50000):
-  loss = criterion.forward(preds,y)
   loss.backward()
   optim.step()
   optim.zeroGrad()
-  loss.gradFn.setCatch(false)
-  if (i%1000==0): print("epoch=",i,"loss=",loss.gradFn.eval().value)
+  loss.gradFn.clearData()
+  if (i+1)%5000==0:
+    optim.lr*=0.1
+    print("epoch=",i,"lr=",optim.lr,"loss=",loss.gradFn.eval().value())
+    #print(list(x.sum() for x in net.parameters()))
 
-y.print()
-preds.gradFn.eval().print()
-
-
+'''
 x1=dim.random.rand(20,2)
 y1=(x1[:,0].add(x1[:,1])).reshape(20,1)
 #x1=x1.normal(0)
 #y1=y1.normal(0)
-preds1=net.forward(x1)
+preds1=net(x1)
 #preds1.print()
-y1.print()
-
 
 preds1=preds.gradFn.eval()
 hat=preds1.argmax(1).reshape(y.shape)
@@ -67,6 +65,7 @@ total=y.shape[0]
 correct=hat.eq(y1).sum()
 accuracy=correct/total
 print("准确度为:%{}".format(accuracy*100))
+'''
 
 '''
 #conv2d layer

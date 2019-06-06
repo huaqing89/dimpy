@@ -38,7 +38,7 @@ class Autograd(object):
     else:
       return {}
   def isNumber(sefl,val):
-    return isinstance(val,int) or isinstance(val,float)
+    return isinstance(val,(int,float))
   def shrink(self): pass
   
   def factor(self,opStr): return [self]

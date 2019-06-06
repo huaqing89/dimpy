@@ -10,7 +10,7 @@ class Vector(np.ndarray):
     self.__requiresGrad=False
   def ensureVector(self,a,dtype='float32'):
     if isinstance(a,Vector): return a
-    if isinstance(a,int) or isinstance(a,float): 
+    if isinstance(a,(int,float)): 
       a=np.array([a],dtype)
     elif isinstance(a,list):
       a=np.array(a,dtype)
@@ -52,6 +52,7 @@ class Vector(np.ndarray):
     args = kwargs.get("args",None)
     name = kwargs.get("name",None)
     if (isinstance(left,Vector) and left.requiresGrad) or (isinstance(right,Vector) and right.requiresGrad):
+      #print("setGradFn",left.shape,opStr)
       rst.requiresGrad=True
       if left is None : leftFn=None
       elif getattr(left,"gradFn",None): leftFn=left.gradFn
@@ -63,6 +64,7 @@ class Vector(np.ndarray):
       #print("left",left,leftFn)
       #print("right",right,rightFn)
       rst.gradFn=dim.autograd.Operate.wrapper(leftFn,rightFn,opStr,args,name)
+      rst.gradFn._data=rst.view() #减少一次求值操作 gradFn.eval()将使用gradFn._data作为catch
     return rst   
 
   def __add__(self,other): 
@@ -107,6 +109,18 @@ class Vector(np.ndarray):
   #def __eq__(self,other): return super(Vector,self).__eq__(other)
   #def __ne__(self,other): return super(Vector,self).__ne__(other)
 
+  def float(self):
+    rst=self.ensureVector(self.astype('float32'))
+    return rst
+  def double(self):
+    rst=self.ensureVector(self.astype('float64'))
+    return rst
+  def int(self):
+    rst=self.ensureVector(self.astype('int32'))
+    return rst
+  def long(self):
+    rst=self.ensureVector(self.astype('int64'))
+    return rst
   def radians(self):
     rst=self.ensureVector(np.radians(self))
     return rst
@@ -176,26 +190,26 @@ class Vector(np.ndarray):
     rst=self.setGradFn(rst,"exp")
     return rst
   def sqrt(self): 
-    rst=self.ensureVector(np.sqrt(self))
+    rst=self**0.5
     rst=self.setGradFn(rst,"pow",right=0.5)
     return rst
   def square(self): 
-    rst=self.ensureVector(np.square(self))
+    rst=self ** 2
     rst=self.setGradFn(rst,"pow",right=2)
     return rst
   def pow(self,n):
-    return self**n
+    rst= self**n
+    rst= self.setGradFn(rst,"pow",right=n)
+    return rst
   def floor(self): 
     rst=self.ensureVector(np.floor(self))
     rst=self.setGradFn(rst,"floor")
     return rst
   def ceil(self): 
     rst=self.ensureVector(np.ceil(self))
-    rst=self.setGradFn(rst,"ceil")
     return rst
   def around(self,n): 
     rst=self.ensureVector(np.around(self,n))
-    rst=self.setGradFn(rst,"around",n)
     return rst
   def abs(self):
     rst=self.ensureVector(np.abs(self))
@@ -234,52 +248,52 @@ class Vector(np.ndarray):
   def any(self,axis=None): 
     return self.ensureVector(super(Vector,self).any(axis))
 
-  def sum(self,axis=None):
-    rst = super(Vector,self).sum(axis)
+  def sum(self,axis=None,**kwargs):
+    rst = super(Vector,self).sum(axis,**kwargs)
     if (axis==None):
       rst=self.setGradFn(rst,"sum")
     return rst
-  def mean(self,axis=None):
-    rst = super(Vector,self).mean(axis)
+  def mean(self,axis=None,**kwargs):
+    rst = super(Vector,self).mean(axis,**kwargs)
     if (axis==None):
       rst=self.setGradFn(rst,"mean")
     return rst
-  def max(self,axis=None):
-    rst = super(Vector,self).max(axis)
+  def max(self,axis=None,**kwargs):
+    rst = super(Vector,self).max(axis,**kwargs)
     if (axis==None):
       rst=self.setGradFn(rst,"max",args={"indices":self.argmax()})
     return rst
-  def min(self,axis=None):
-    rst = super(Vector,self).min(axis)
+  def min(self,axis=None,**kwargs):
+    rst = super(Vector,self).min(axis,**kwargs)
     if (axis==None):
       rst=self.setGradFn(rst,"min",args={"indices":self.argmin()})
     return rst
-  def argmax(self,axis=None):
-    return super(Vector,self).argmax(axis)
-  def argmin(self,axis=None):
-    return super(Vector,self).argmin(axis)
-  def var(self,axis=None):
-    rst = super(Vector,self).var(axis)
+  def argmax(self,axis=None,**kwargs):
+    return super(Vector,self).argmax(axis,**kwargs)
+  def argmin(self,axis=None,**kwargs):
+    return super(Vector,self).argmin(axis,**kwargs)
+  def var(self,axis=None,**kwargs):
+    rst = super(Vector,self).var(axis,**kwargs)
     if (axis==None):
       rst=self.setGradFn(rst,"var")
     return rst
-  def std(self,axis=None):
-    rst = super(Vector,self).std(axis)
+  def std(self,axis=None,**kwargs):
+    rst = super(Vector,self).std(axis,**kwargs)
     if (axis==None):
       rst=self.setGradFn(rst,"std")
     return rst
-  def cov(self,axis=None):
-    rst = super(Vector,self).cov(axis)
+  def cov(self,axis=None,**kwargs):
+    rst = super(Vector,self).cov(axis,**kwargs)
     if (axis==None):
       rst=self.setGradFn(rst,"cov")
     return rst
-  def ptp(self,axis=None):
-    rst = super(Vector,self).ptp(axis)
+  def ptp(self,axis=None,**kwargs):
+    rst = super(Vector,self).ptp(axis,**kwargs)
     if (axis==None):
       rst=self.setGradFn(rst,"ptp")
     return rst
-  def median(self,axis=None):
-    rst = super(Vector,self).median(axis)
+  def median(self,axis=None,**kwargs):
+    rst = super(Vector,self).median(axis,**kwargs)
     if (axis==None):
       rst=self.setGradFn(rst,"median")
     return rst
@@ -291,7 +305,7 @@ class Vector(np.ndarray):
     
   def t(self):
     rst = self.T.copy()
-    rst=self.setGradFn(rst,"T")
+    #rst=self.setGradFn(rst,"T")
     return rst
     
   def rot180(self):
@@ -299,7 +313,7 @@ class Vector(np.ndarray):
     a = a[::-1]
     a = a.reshape(self.shape)
     return a
-  def onehot(self,n=None):
+  def onehotEncode(self,n=None):
     a=self
     if (a.ndim==1): a=a.reshape(a.size,1)
     if (a.ndim!=2 or a.shape[1]!=1): 
@@ -312,21 +326,47 @@ class Vector(np.ndarray):
       b[i,int(x)]=1
     return self.ensureVector(b)
      
+  def labelEncode(self,dic=None):
+    a=self
+    if (a.ndim==1): a=a.reshape(a.size,1)
+    if (a.ndim!=2 or a.shape[1]!=1): 
+      raise Exception("对象要求是一维向量，或是n*1矩阵")
+    b=a.copy()
+    if (dic is None):
+      v=list(set(b.flat))
+      v.sort()
+      dic={}
+      for i,x in enumerate(v):dic[x]=i
+    for x in dic:
+      b[b==x]=dic[x]  
+    return b.int()
+
   def pad(self,pad_width,mode="constant"):
     return np.pad(self,pad_width,mode=mode)
   
   def kron(self,b):
     return np.kron(self,b)
-
+  def zNormal(self,axis=0):
+    mean = self.mean(axis)
+    std = self.std(axis)
+    return (self-mean) / std
+  def minmaxScalar(self,axis=0):
+    dmin = self.min(axis)
+    sub =self.max(axis) - dmin
+    return (self - dmin)/ sub
+  def maxabsScalar(self,axis=0):
+    return self/self.max(axis).abs()  
+  
   def clip(self,m,n): return np.clip(self,m,n)
   
   def hsplit(self,m): return np.split(self,m,1)
   def vsplit(self,m): return np.split(self,m,0)
-  def split(self,m,axis=1): return np.split(self,m,axis)
+  def split(self,m,axis=0): return np.split(self,m,axis)
 
   def take(self,axis,p): return np.take(self,axis,p)
         
   def value(self): return self.tolist()
+  def numpy(self): return self.base
   
   def setGrad(self,bool=True):
     self.requiresGrad=bool
@@ -339,7 +379,9 @@ class Vector(np.ndarray):
   def isLeaf(self):
     return (not isinstance(self.gradFn,dim.autograd.Operate))
 
-  def expression(self): return self.gradFn and self.gradFn.expression()
+  def expression(self): 
+    if (not self.gradFn): return None
+    return self.gradFn.expression()
   def gradExpression(self):
     if (not self.gradFn): return None
     return self.gradFn.gradExpression()
@@ -349,9 +391,18 @@ class Vector(np.ndarray):
     variables=self.gradFn.variables()
     for v in variables:
       op=self.gradFn.backward(prevOp,v)
-      a=op.eval()
-      v.data.grad = v.data.grad.add(a) if isinstance(v.data.grad,Vector) else a
+      grad=op.eval()
+      v.data.grad = v.data.grad.add(grad) if v.data.grad is not None else grad
   def gradClear(self):
     self.gradFn.clearData()
     self.grad=None
 
+  #define opencl
+  def to_device(self):
+    return dim.cl.to_device(self)
+  def cl(self):
+    return self.to_device()
+  def cl_(self):
+    print("??")
+    self=dim.cl.to_device(self)
+    return self

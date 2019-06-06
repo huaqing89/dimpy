@@ -1,18 +1,25 @@
 import json
 import math
-import random
-import hashlib
 
 import dim
 from .autograd import Autograd
 
-CONSTANT= []
-
 class Constant(Autograd):
-  def __init__(self,data):
+  sequence=0
+  def __init__(self,data,name=None):
     super(Constant,self).__init__()
-    if isinstance(data,Constant): return self
-    if self.isNumber(data): data=dim.vector(data)
+    if self.isNumber(data):
+      self.number=data 
+      self.data = dim.vector(data)
+    elif (isinstance(data,dim.Vector) and data.size==1):
+      self.number=data
+      self.data = data
+    elif (isinstance(data,dim.cl.Array) and data.size==1):
+      self.number=data
+      self.data = data
+    else:
+      self.number=None
+      self.data = data
     '''节省空间，但严重影响效率
     md5=hashlib.md5()
     md5.update(json.dumps(data.tolist()).encode())
@@ -27,12 +34,16 @@ class Constant(Autograd):
       self.data = data
       CONSTANT.append({"name":self.name,"hash":hashData,"object":self})
     '''
-    self.name = "const"+str(random.random())[-6:]
-    self.data = data
+    if (name is None):
+      Constant.sequence+=1
+      self.name = "const"+str(Constant.sequence)
+    else:
+      self.name = name
+    #print(self.name,self.number,data,type(data))
     self.type = "Constant"
     self._expressionStr=self.name
   
-  def partGrad(self,partial,prevOp):
+  def partGrad(self,partial=None,prevOp=None):
     rst = Constant(0)
     self._grads[self.name]=rst
     return rst
@@ -40,12 +51,14 @@ class Constant(Autograd):
   def expression(self):
     if self.isNumber(self.data): return str(self.data)
     rst=json.dumps(self.data.tolist())
-    if (len(rst)>50): return "Data[{}]".format("*".join(str(i) for i in self.data.shape)) 
-    else: return rst
+    if (len(rst)>50): 
+      return "{}[{}]".format(self.name,"*".join(str(i) for i in self.data.shape)) 
+    else:
+      return "{}({})".format(self.name,rst)
 
-  def eval(self):return self.data
+  def eval(self,useCatch=True):return self.data
   def backward(self):return self.partGrad()
-  def variables(self):return []
+  def variables(self,prevOp,partial):return []
   def isSame(self,a):
     if (not isinstance(a,Constant)): return False
     if (self.name==a.name and self.data==a.data): return True

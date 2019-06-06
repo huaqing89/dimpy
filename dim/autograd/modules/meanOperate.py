@@ -9,7 +9,8 @@ class MeanOperate(Operate):
     if (partial.type!="Variable"): raise Exception("partial参数必须是Variable类型")
     if (self.catch and self._grads.get(partial.name,None)): return self._grads[partial.name]
     if (prevOp is None): prevOp=Constant(dim.ones(self.eval().shape))
-
+    
+    
     part1 = Constant(dim.fill(1/self.left.eval().size,self.left.eval().shape))
     part2 = dim.autograd.MulOperate.wrapper(part1,prevOp)
     part3 = self.left.partGrad(partial,part2)
@@ -24,9 +25,9 @@ class MeanOperate(Operate):
     self._expressionStr = rst
     return rst
   
-  def eval(self):
-    if (self.catch and self._data !=None): return self._data
-    rst= dim.mean(self.left.eval())
+  def eval(self,useCatch=True):
+    if (useCatch and self.catch and self._data !=None): return self._data
+    rst= dim.mean(self.left.eval(useCatch))
     self._data = rst
     return rst
 

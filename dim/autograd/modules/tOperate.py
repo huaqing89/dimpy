@@ -29,10 +29,10 @@ class TOperate(Operate):
     self._expressionStr = rst
     return rst
    
-  def eval(self):
-    if (self.catch and self._data is not None): return self._data
+  def eval(self,useCatch=True):
+    if (useCatch and self.catch and self._data is not None): return self._data
 
-    rst=self.left.eval()
+    rst=self.left.eval(useCatch)
     if (not self.isNumber(rst)): rst=rst.t()
     self._data = rst
     return rst

@@ -39,4 +39,28 @@ RUN pip3 install pymongo bson
 
 RUN npm install react-redux --save
 RUN npm install echarts --save
-WORKDIR /bc
+
+RUN apk add ipython3 --no-cache
+RUN apk add jupyter --no-cache
+
+RUN pip3 install pandas
+RUN apk add libxml2 libxml2-dev libxslt libxslt-dev --no-cache
+RUN pip3 install lxml html5lib beautifulsoup4 xlrd
+#RUN pip3 install pillow
+RUN pip3 install matplotlib
+RUN pip3 install gym
+RUN pip3 install psutil
+
+RUN pip3 install pybind11
+RUN pip3 install mako
+RUN pip3 install pyopencl
+
+RUN pip3 install jupyter_contrib_nbextensions
+RUN jupyter contrib nbextension install --user
+RUN pip3 install jupyter_nbextensions_configurator
+RUN jupyter nbextensions_configurator enable --user
+RUN pip3 install jupyterthemes
+
+RUN jt -t oceans16 -T -N
+
+WORKDIR /python

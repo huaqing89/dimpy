@@ -32,3 +32,13 @@ class Linear(Module):
   
   def __str__(self):
     return "Linear(in_features={}, out_features={}, bias={})".format(self.ins,self.outs,self.bias is not None)
+  
+  def cl(self):
+    self.params=[]
+    self.weight=self.setParameters((self.ins,self.outs)).cl()
+    self.params.append(self.weight)
+    if self.bias is not None:
+      self.bias=self.setParameters((self.outs,)).cl()
+      #self.bias.setGrad()
+      self.params.append(self.bias)
+      
